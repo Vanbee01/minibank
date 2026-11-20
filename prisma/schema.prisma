@@ -1,0 +1,35 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Role { ADMIN MEMBER }
+enum TransactionType { DEPOSIT WITHDRAW TRANSFER_IN TRANSFER_OUT }
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(MEMBER)
+  qrToken      String        @unique @default(cuid())
+  balance      BigInt        @default(0)
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  sent         Transaction[] @relation("Sender")
+  received     Transaction[] @relation("Recipient")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  reference   String          @unique @default(cuid())
+  type        TransactionType
+  amount      BigInt
+  description String?
+  senderId    String?
+  recipientId String?
+  createdById String
+  createdAt   DateTime        @default(now())
+  sender      User?           @relation("Sender", fields: [senderId], references: [id])
+  recipient   User?           @relation("Recipient", fields: [recipientId], references: [id])
+  @@index([senderId, createdAt])
+  @@index([recipientId, createdAt])
+}
